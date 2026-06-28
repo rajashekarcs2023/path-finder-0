@@ -143,13 +143,30 @@ def fallback_result(p: dict, note: str) -> dict:
     }
 
 
+def make_llm():
+    """Select the LLM that drives the browser-use agent.
+
+    Defaults to OpenAI; set BROWSER_USE_PROVIDER=gemini to use Gemini instead.
+    Override the model with BROWSER_USE_MODEL.
+    """
+    provider = (os.getenv("BROWSER_USE_PROVIDER") or "openai").lower()
+    model = os.getenv("BROWSER_USE_MODEL")
+    if provider in ("gemini", "google"):
+        from browser_use import ChatGoogle
+
+        return ChatGoogle(model=model or "gemini-3.5-flash")
+    from browser_use import ChatOpenAI
+
+    return ChatOpenAI(model=model or "gpt-5.4-mini")
+
+
 async def run_persona(url: str, p: dict, max_steps: int, sem: asyncio.Semaphore) -> dict:
-    from browser_use import Agent, ChatGoogle
+    from browser_use import Agent
 
     async with sem:
-        log(f"[{p['id']}] starting browser-use on {url}")
+        log(f"[{p['id']}] starting browser-use on {url} (provider={os.getenv('BROWSER_USE_PROVIDER') or 'openai'})")
         try:
-            llm = ChatGoogle(model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"))
+            llm = make_llm()
             agent = Agent(task=build_task(url, p), llm=llm)
             history = await agent.run(max_steps=max_steps)
         except Exception as e:  # noqa: BLE001

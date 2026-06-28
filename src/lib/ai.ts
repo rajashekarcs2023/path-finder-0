@@ -20,7 +20,7 @@ export function isAIEnabled(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 // Lazily import the SDK so the bundle/build never depends on it being present.
 async function getClient() {

@@ -132,7 +132,7 @@ export default function SetupForm() {
             >
               <span className="text-sm font-semibold text-white">🌐 Live website</span>
               <span className="text-xs text-slate-400">
-                real browser-use + Gemini agent
+                real browser-use + OpenAI agent
               </span>
             </button>
           </div>
@@ -149,7 +149,7 @@ export default function SetupForm() {
                 className={INPUT_CLASS}
               />
               <p className="mt-1.5 text-xs text-amber-300/90">
-                ⚡ Each persona drives a real browser (browser-use + Gemini)
+                ⚡ Each persona drives a real browser (browser-use + OpenAI)
                 through your live site — takes ~30–60s.
               </p>
             </div>
