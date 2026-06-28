@@ -4,20 +4,20 @@
 
 ### AI GTM QA before you send traffic
 
-**Autonomous AI buyer personas navigate your website on real go-to-market missions, find exactly where each one fails to convert, and generate the precise fixes — _before_ you spend a dollar on launch, outbound, or ads.**
+**path-finder-0 sends autonomous AI buyer personas through your live website on real go-to-market missions, finds exactly where each one fails to convert, and generates the precise fixes — _before_ you spend a dollar on launch, outbound, or ads.**
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-![Tailwind](https://img.shields.io/badge/Tailwind-v3-06B6D4?logo=tailwindcss&logoColor=white)
-![Playwright](https://img.shields.io/badge/Playwright-browser%20agent-2EAD33?logo=playwright&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-optional-412991?logo=openai&logoColor=white)
+![browser-use](https://img.shields.io/badge/browser--use-live%20agent-22C55E)
+![Gemini](https://img.shields.io/badge/Gemini-3.5%20Flash-8E75FF?logo=googlegemini&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-fallback-2EAD33?logo=playwright&logoColor=white)
 
 <br/>
 
 <img src="docs/run-live.png" width="860" alt="Four AI buyer personas navigating a website in parallel, each on its own GTM mission" />
 
-<sub>Four autonomous AI personas — Developer, Founder, Enterprise Buyer, Student — running real missions against a live site, in parallel.</sub>
+<sub>Four autonomous AI personas — Developer, Founder, Enterprise Buyer, Student — running real missions against a site, in parallel.</sub>
 
 </div>
 
@@ -31,77 +31,68 @@ Analytics only tells you the launch leaked *after* you've already paid for the c
 
 ## The solution
 
-**path-finder-0 runs your buyers through the funnel first.** It dispatches autonomous AI buyer personas — each with a distinct GTM mission — through your website. They navigate like real visitors, get stuck where real visitors get stuck, and report back:
+**path-finder-0 runs your buyers through the funnel first.** It dispatches autonomous AI buyer personas — each with a distinct GTM mission — through your **live website**. Each persona drives a real browser ([browser-use](https://github.com/browser-use/browser-use) + Gemini 3.5), navigates like a real visitor, gets stuck where real visitors get stuck, and reports back:
 
 - **Can a developer find the quickstart?**
 - **Can a founder map the product to a concrete use case?**
 - **Can an enterprise buyer find security/trust before the demo CTA?**
 - **Can a student find a starter template?**
-- **Where exactly did each one give up — and what copy/CTA/section would fix it?**
+- **Where exactly did each one give up — and what copy / CTA / section would fix it?**
 
-Then it generates the exact fixes and **re-runs the persona to prove the fix worked.**
+It returns a per-persona launch-readiness score, the exact confusion point and conversion blocker, a first-person quote, and a copy-pasteable fix.
 
 > **path-finder-0 is not a chatbot, not a generic site audit, and not a fake-analytics dashboard.** It's mission-based AI website testing — pre-launch GTM QA for startups.
 
 ---
 
+## It runs on real sites
+
+Point a persona at any URL and it actually navigates it. A real run of the **Developer** persona against **fetch.ai**:
+
+```
+Developer — SUCCESS · 95/100
+ 1. open fetch.ai
+ 2. accept cookies, scan for a developer path
+ 3. click "Get Started"
+ 4. click "uAgents Resources"
+ 5. wait for the docs SPA to hydrate
+ 6. click "Quickstart" in the sidebar
+ 7. ✅ reached uagents.fetch.ai/docs/quickstart
+
+ “I was impressed how fast I could find a local, self-hosted Python
+  quickstart — 2 commands and a simple script to get an agent running.”
+
+ Fix → Add a one-click "Create uAgent" starter-template CLI command or a
+       zip download on the quickstart page to skip manual file creation.
+```
+
+The agent handled a cookie banner, a marketing → docs domain jump, and an SPA that needed a hydration wait — then wrote a grounded, persona-specific verdict.
+
+---
+
 ## How it works
 
-Each persona runs an **observe → decide → act** loop against a real, headless browser, then writes a verdict:
+Each persona runs an **observe → decide → act** loop against a real browser, then writes a verdict:
 
 ```mermaid
 flowchart LR
-    A[Persona + Mission] --> B[Open page in browser]
-    B --> C[Extract observation<br/>title · headings · links · buttons · text]
-    C --> D{LLM decides next action}
-    D -->|click| E[Navigate / click element]
-    D -->|scroll| C
+    A[Persona + Mission] --> B[Open the real site in a browser]
+    B --> C[Read the page<br/>headings · links · buttons · content]
+    C --> D{Gemini decides the next action}
+    D -->|click / type / scroll| E[Act in the live browser]
     E --> C
-    D -->|stop| F[Generate verdict<br/>outcome · score · blocker · fix]
-    F --> G[Aggregate → readiness score + fixes]
+    D -->|done| F[Write verdict<br/>outcome · score · blocker · fix]
+    F --> G[Aggregate → launch-readiness score + fixes]
 ```
 
-It runs in one of two modes, chosen automatically — and **every mode degrades safely to the next on any error, per persona**, so a missing key or a flaky page never breaks a run:
+### Run modes
 
-| Mode | When | What happens |
+| Mode | What runs | When |
 | --- | --- | --- |
-| 🌐 **Live browser** | `USE_BROWSER_AGENT=true` | Real Playwright Chromium navigates the site; an LLM (or heuristic) picks each action |
-| 🧠 **AI** | `OPENAI_API_KEY` set | An LLM reasons over the page model step by step and writes each verdict |
+| 🌐 **Live** | **browser-use + Gemini 3.5** drive a real Chromium through your real site, persona by persona | you enter any URL in setup |
+| ⚡ **Sample** | a built-in environment (the *AgentGrid* site) for an instant, zero-setup run + before/after | the default in setup |
 
-The demo ships with a **controlled, intentionally-flawed sample site** (`/demo-site`, "AgentGrid") and its **fixed version** (`/demo-site-improved`), so the before/after story is reproducible without depending on a third-party site.
-
----
-
-## Why now
-
-- **LLMs can finally read and reason about a page like a buyer** — judging whether a value prop is clear or a CTA is findable, not just scraping text.
-- **Agentic browser infra matured** (Playwright, headless cloud browsers) — driving a real browser through a real funnel is now routine.
-- **Inference got cheap enough** to run several personas, several steps each, for cents.
-
-The pieces to test a funnel the way a *human buyer* would just landed. path-finder-0 puts them to work before launch — the highest-leverage moment, when a copy change is free and a wasted ad dollar isn't.
-
----
-
-## What's real today vs. where it's going
-
-We're honest about the line (judges should be too):
-
-**Real today**
-- Genuine observe→decide→act agent loop over a real headless browser (`src/lib/browserAgent.ts`).
-- Real LLM-driven navigation + verdicts when a key is present (`src/lib/ai.ts`).
-- Real generated, copy-pasteable fixes mapped to concrete blockers.
-- A reproducible before/after with a measurable re-run delta.
-
-**Demo-controlled (by design, for reliability)**
-- Runs against a built-in sample site so the narrative lands every time.
-- Deterministic fallback so it never breaks on stage.
-
-**Roadmap to the real thing**
-- **Point it at any live URL** with cloud browsers (Browserbase / Stagehand) — paste your site, agents crawl it for real.
-- **Test authenticated onboarding** (signup → activation) with test credentials.
-- **Live session replay** — record each persona's browser session as video, attached to every finding.
-- **GTM QA on every deploy** — run against Vercel/Netlify preview URLs in CI; track launch-readiness over time.
-- **Custom personas/ICPs** and **auto-generated fix PRs**.
+Live runs degrade safely — if browser-use is unavailable they fall back to an in-process Playwright + OpenAI agent, then to a neutral verdict — so a run never hard-fails. The sample mode is fully self-contained and needs no keys.
 
 ---
 
@@ -112,49 +103,57 @@ npm install
 npm run dev          # → http://localhost:3000
 ```
 
-That's it — **the full demo works with no API keys and no browser install** (deterministic fallback mode).
+Open the app, go to **Setup**, and pick a target:
 
-<details>
-<summary><b>Optional: real AI reasoning</b></summary>
+- **⚡ Sample** — runs instantly against the built-in site, no setup.
+- **🌐 Live website** — paste a real URL (e.g. `https://fetch.ai`) and watch the personas test it for real.
 
-```bash
-cp .env.example .env.local
-# set in .env.local:
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini   # default
-```
-Without a key, path-finder-0 uses the fallback agent automatically — nothing breaks.
-</details>
-
-<details>
-<summary><b>Optional: real browser navigation (Playwright)</b></summary>
+### Enable live runs (browser-use + Gemini)
 
 ```bash
-npm run playwright:install   # one-time: installs Chromium
+# 1) a Python env with browser-use (installs its own browser the first time)
+cd agent && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && cd ..
+
+# 2) configure .env
+USE_BROWSER_USE=true
+PYTHON_BIN=/absolute/path/to/path-finder-0/agent/.venv/bin/python
+GEMINI_API_KEY=...            # or GOOGLE_API_KEY
+GEMINI_MODEL=gemini-3.5-flash
 ```
-Then set `USE_BROWSER_AGENT=true` (and `HEADLESS=false` to watch it live) in `.env.local`, with the dev server running. Any Playwright failure falls back to the deterministic result — the demo never breaks.
-</details>
+
+See [`agent/README.md`](agent/README.md) for details (and how to reuse an existing browser-use venv). Restart `npm run dev`, choose **Live website**, and run.
 
 ---
 
-## Tech stack
-
-**Next.js 15** (App Router) · **React 19** · **TypeScript** (strict) · **Tailwind CSS v3** · **Playwright** (optional, lazy-loaded) · **OpenAI** (optional, lazy-loaded) · in-memory run store (no DB required).
+## Architecture
 
 ```
 src/
   app/
     page.tsx · setup · run · results          # the product
-    demo-site/… · demo-site-improved          # the site under test (+ its fix)
+    demo-site/… · demo-site-improved          # the built-in sample site (+ its fixed version)
     api/run · api/generate-fixes              # run engine + fix generation
   components/   LaunchHero · SetupForm · PersonaRunCard · JourneyTimeline
                 ResultsDashboard · FixCard · BeforeAfterPreview · ReRunMoment · DemoSiteLayout
-  lib/          runEngine · ai · browserAgent · fallbackAgent · fixGenerator
-                personas · types · store · score · seed · brand
+  lib/          runEngine        # routes a run to the right engine (live vs sample)
+                browserUseAgent  # bridge to the browser-use + Gemini agent
+                browserAgent     # in-process Playwright + OpenAI fallback agent
+                ai · personas · fixGenerator · score · types · brand
+agent/
+  persona_run.py                 # browser-use + Gemini runner (spawned per live run)
 ```
 
-The product name lives in one place — `src/lib/brand.ts`.
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind v3 · **browser-use + Gemini 3.5** for live runs · Playwright + OpenAI as fallback · in-memory run store (no DB required).
 
 ---
 
-<div align="center"><sub>Built for the YC AI Growth Hackathon · pre-launch GTM QA for startups</sub></div>
+## Roadmap
+
+- **Cloud browsers** (Browserbase / Stagehand) for scale + an embedded **live browser view & session replay** attached to every finding.
+- **Authenticated funnels** — test signup → activation behind a login with test credentials.
+- **GTM QA in CI** — run against every Vercel / Netlify preview deploy and trend launch-readiness over time.
+- **Custom personas / ICPs** and **auto-generated fix PRs**.
+
+---
+
+<div align="center"><sub>path-finder-0 — pre-launch GTM QA for startups</sub></div>
