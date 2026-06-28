@@ -131,7 +131,9 @@ export default function SetupForm() {
               className={targetClass(target === "live")}
             >
               <span className="text-sm font-semibold text-white">🌐 Live website</span>
-              <span className="text-xs text-slate-400">real browser + AI</span>
+              <span className="text-xs text-slate-400">
+                real browser-use + Gemini agent
+              </span>
             </button>
           </div>
 
@@ -147,8 +149,8 @@ export default function SetupForm() {
                 className={INPUT_CLASS}
               />
               <p className="mt-1.5 text-xs text-amber-300/90">
-                ⚡ Live mode launches a real Chromium browser and uses AI to
-                navigate the site — needs an OpenAI key and takes ~30–60s.
+                ⚡ Each persona drives a real browser (browser-use + Gemini)
+                through your live site — takes ~30–60s.
               </p>
             </div>
           ) : (

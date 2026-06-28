@@ -19,7 +19,7 @@ import {
 } from "@/lib/clientStore";
 import PersonaRunCard from "@/components/PersonaRunCard";
 
-type RunMode = "fallback" | "ai" | "browser";
+type RunMode = "fallback" | "ai" | "browser" | "browseruse";
 
 type RunResponse = {
   runId: string;
@@ -32,6 +32,7 @@ const MODE_PILL: Record<RunMode, string> = {
   fallback: "Fallback mode",
   ai: "AI mode",
   browser: "Live browser",
+  browseruse: "Live · browser-use + Gemini",
 };
 
 const TICK_MS = 750;

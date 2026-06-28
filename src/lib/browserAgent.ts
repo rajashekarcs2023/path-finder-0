@@ -164,7 +164,10 @@ export async function runPersonaJourney({
     const journey: JourneyStep[] = [];
 
     for (let step = 1; step <= maxSteps; step++) {
-      const observation = (await page.evaluate(EXTRACT)) as PageObservation;
+      // EXTRACT is a stringified arrow fn (kept as a string so TS doesn't choke
+      // on browser globals); it must be INVOKED in page context, not just
+      // evaluated as an expression (which would return an unserializable fn).
+      const observation = (await page.evaluate(`(${EXTRACT})()`)) as PageObservation;
       const action = await decideAction(persona, observation, journey);
 
       if (action.type === "stop") {

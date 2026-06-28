@@ -9,6 +9,7 @@ import { getPersona } from "./personas";
 import { chooseNextAction, generatePersonaReport, isAIEnabled } from "./ai";
 import { getFallbackResult, runFallback } from "./fallbackAgent";
 import { genericResult, runPersonaJourney } from "./browserAgent";
+import { isBrowserUseEnabled, runWithBrowserUse } from "./browserUseAgent";
 import { getDemoPage } from "./demoSiteData";
 
 /** A real, external website (not our own localhost demo site). */
@@ -29,7 +30,7 @@ export function isLiveUrl(url: string): boolean {
  * breaks the run; it degrades to the curated fallback for that persona.
  */
 
-export type RunMode = "browser" | "ai" | "fallback";
+export type RunMode = "browser" | "browseruse" | "ai" | "fallback";
 
 export function resolveMode(): RunMode {
   if (process.env.USE_BROWSER_AGENT === "true") return "browser";
@@ -128,32 +129,38 @@ export async function executeRun(
   startUrl = "/demo-site",
 ): Promise<{ mode: RunMode; results: PersonaResult[] }> {
   const live = isLiveUrl(startUrl);
-  // A real external URL can ONLY be tested with a real browser — force it,
-  // regardless of env. The controlled demo follows the configured mode.
-  const mode: RunMode = live ? "browser" : resolveMode();
 
-  // Fast path: pure deterministic fallback (demo only).
+  if (live) {
+    // Real external URL: prefer the browser-use + Gemini agent when configured;
+    // it's a far more capable autonomous browser agent on messy real sites.
+    if (isBrowserUseEnabled()) {
+      const bu = await runWithBrowserUse(startUrl, personaIds);
+      if (bu && bu.length) return { mode: "browseruse", results: bu };
+      console.error(
+        "browser-use unavailable/failed — falling back to Playwright+OpenAI live mode",
+      );
+    }
+    // Fallback live engine: in-process Playwright + OpenAI, run in parallel.
+    const results = await Promise.all(
+      personaIds.map((id) => runOnePersona("browser", id, startUrl, true)),
+    );
+    return { mode: "browser", results };
+  }
+
+  // Demo (non-live). The AI-over-static-model path is harsher and
+  // non-deterministic, so keep the controlled demo on the curated fallback for
+  // reliable recordings. A real browser run on the demo requires USE_BROWSER_AGENT.
+  const requested = resolveMode();
+  const mode: RunMode = requested === "ai" ? "fallback" : requested;
+
   if (mode === "fallback") {
     return { mode, results: runFallback(personaIds) };
   }
 
-  let results: PersonaResult[];
-  if (mode === "browser") {
-    // Live runs go in parallel for speed. The demo runs sequentially (4 Chromium
-    // at once is heavy and the controlled demo doesn't need the speed).
-    if (live) {
-      results = await Promise.all(
-        personaIds.map((id) => runOnePersona(mode, id, startUrl, true)),
-      );
-    } else {
-      results = [];
-      for (const id of personaIds) {
-        results.push(await runOnePersona(mode, id, startUrl, false));
-      }
-    }
-  } else {
-    results = await Promise.all(personaIds.map((id) => runOnePersona(mode, id, startUrl)));
+  // mode === "browser": real Chromium on the controlled demo, run sequentially.
+  const results: PersonaResult[] = [];
+  for (const id of personaIds) {
+    results.push(await runOnePersona("browser", id, startUrl, false));
   }
-
   return { mode, results };
 }
