@@ -10,7 +10,7 @@
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![browser-use](https://img.shields.io/badge/browser--use-live%20agent-22C55E)
-![Gemini](https://img.shields.io/badge/Gemini-3.5%20Flash-8E75FF?logo=googlegemini&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5.4-412991?logo=openai&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-fallback-2EAD33?logo=playwright&logoColor=white)
 
 <br/>
@@ -31,7 +31,7 @@ Analytics only tells you the launch leaked *after* you've already paid for the c
 
 ## The solution
 
-**path-finder-0 runs your buyers through the funnel first.** It dispatches autonomous AI buyer personas — each with a distinct GTM mission — through your **live website**. Each persona drives a real browser ([browser-use](https://github.com/browser-use/browser-use) + Gemini 3.5), navigates like a real visitor, gets stuck where real visitors get stuck, and reports back:
+**path-finder-0 runs your buyers through the funnel first.** It dispatches autonomous AI buyer personas — each with a distinct GTM mission — through your **live website**. Each persona drives a real browser ([browser-use](https://github.com/browser-use/browser-use) + OpenAI), navigates like a real visitor, gets stuck where real visitors get stuck, and reports back:
 
 - **Can a developer find the quickstart?**
 - **Can a founder map the product to a concrete use case?**
@@ -78,7 +78,7 @@ Each persona runs an **observe → decide → act** loop against a real browser,
 flowchart LR
     A[Persona + Mission] --> B[Open the real site in a browser]
     B --> C[Read the page<br/>headings · links · buttons · content]
-    C --> D{Gemini decides the next action}
+    C --> D{OpenAI decides the next action}
     D -->|click / type / scroll| E[Act in the live browser]
     E --> C
     D -->|done| F[Write verdict<br/>outcome · score · blocker · fix]
@@ -89,7 +89,7 @@ flowchart LR
 
 | Mode | What runs | When |
 | --- | --- | --- |
-| 🌐 **Live** | **browser-use + Gemini 3.5** drive a real Chromium through your real site, persona by persona | you enter any URL in setup |
+| 🌐 **Live** | **browser-use + OpenAI** drive a real Chromium through your real site, persona by persona | you enter any URL in setup |
 | ⚡ **Sample** | a built-in environment (the *AgentGrid* site) for an instant, zero-setup run + before/after | the default in setup |
 
 Live runs degrade safely — if browser-use is unavailable they fall back to an in-process Playwright + OpenAI agent, then to a neutral verdict — so a run never hard-fails. The sample mode is fully self-contained and needs no keys.
@@ -108,7 +108,7 @@ Open the app, go to **Setup**, and pick a target:
 - **⚡ Sample** — runs instantly against the built-in site, no setup.
 - **🌐 Live website** — paste a real URL (e.g. `https://fetch.ai`) and watch the personas test it for real.
 
-### Enable live runs (browser-use + Gemini)
+### Enable live runs (browser-use + OpenAI)
 
 ```bash
 # 1) a Python env with browser-use (installs its own browser the first time)
@@ -117,8 +117,8 @@ cd agent && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt &
 # 2) configure .env
 USE_BROWSER_USE=true
 PYTHON_BIN=/absolute/path/to/path-finder-0/agent/.venv/bin/python
-GEMINI_API_KEY=...            # or GOOGLE_API_KEY
-GEMINI_MODEL=gemini-3.5-flash
+OPENAI_API_KEY=sk-...
+BROWSER_USE_MODEL=gpt-5.4-mini
 ```
 
 See [`agent/README.md`](agent/README.md) for details (and how to reuse an existing browser-use venv). Restart `npm run dev`, choose **Live website**, and run.
@@ -136,14 +136,14 @@ src/
   components/   LaunchHero · SetupForm · PersonaRunCard · JourneyTimeline
                 ResultsDashboard · FixCard · BeforeAfterPreview · ReRunMoment · DemoSiteLayout
   lib/          runEngine        # routes a run to the right engine (live vs sample)
-                browserUseAgent  # bridge to the browser-use + Gemini agent
+                browserUseAgent  # bridge to the browser-use + OpenAI agent
                 browserAgent     # in-process Playwright + OpenAI fallback agent
                 ai · personas · fixGenerator · score · types · brand
 agent/
-  persona_run.py                 # browser-use + Gemini runner (spawned per live run)
+  persona_run.py                 # browser-use + OpenAI runner (spawned per live run)
 ```
 
-**Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind v3 · **browser-use + Gemini 3.5** for live runs · Playwright + OpenAI as fallback · in-memory run store (no DB required).
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind v3 · **browser-use + OpenAI** for live runs · Playwright fallback · in-memory run store (no DB required).
 
 ---
 
