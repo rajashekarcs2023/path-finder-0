@@ -61,13 +61,12 @@ flowchart LR
     F --> G[Aggregate → readiness score + fixes]
 ```
 
-It runs in one of three modes, chosen automatically — and **every mode degrades safely to the next on any error, per persona**, so a missing key or a flaky page never breaks a run:
+It runs in one of two modes, chosen automatically — and **every mode degrades safely to the next on any error, per persona**, so a missing key or a flaky page never breaks a run:
 
 | Mode | When | What happens |
 | --- | --- | --- |
 | 🌐 **Live browser** | `USE_BROWSER_AGENT=true` | Real Playwright Chromium navigates the site; an LLM (or heuristic) picks each action |
 | 🧠 **AI** | `OPENAI_API_KEY` set | An LLM reasons over the page model step by step and writes each verdict |
-| ✅ **Fallback** | default | Deterministic, polished persona journeys — reliable for demos with zero setup |
 
 The demo ships with a **controlled, intentionally-flawed sample site** (`/demo-site`, "AgentGrid") and its **fixed version** (`/demo-site-improved`), so the before/after story is reproducible without depending on a third-party site.
 
