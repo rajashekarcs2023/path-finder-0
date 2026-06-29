@@ -8,8 +8,16 @@ import type {
 import { getPersona } from "./personas";
 import { chooseNextAction, generatePersonaReport, isAIEnabled } from "./ai";
 import { getFallbackResult, runFallback } from "./fallbackAgent";
-import { runPersonaJourney } from "./browserAgent";
+import { genericResult, runPersonaJourney } from "./browserAgent";
 import { getDemoPage } from "./demoSiteData";
+
+/** A real, external website (not our own localhost demo site). */
+export function isLiveUrl(url: string): boolean {
+  return (
+    /^https?:\/\//i.test(url) &&
+    !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)
+  );
+}
 
 /**
  * Decides HOW a run executes, in priority order:
@@ -93,11 +101,17 @@ async function runOnePersona(
   mode: RunMode,
   id: PersonaId,
   startUrl: string,
+  live = false,
 ): Promise<PersonaResult> {
   const persona = getPersona(id);
   try {
     if (mode === "browser") {
-      return await runPersonaJourney({ persona, startUrl, maxSteps: MAX_STEPS });
+      return await runPersonaJourney({
+        persona,
+        startUrl,
+        maxSteps: MAX_STEPS,
+        generic: live,
+      });
     }
     if (mode === "ai") {
       return await runAiSimulated(persona, startUrl);
@@ -105,27 +119,37 @@ async function runOnePersona(
   } catch (err) {
     console.error(`Run failed for ${id} (${mode}); using fallback:`, err);
   }
-  return getFallbackResult(id);
+  // For a real URL, never fall back to the AgentGrid-specific curated result.
+  return live ? genericResult(persona, []) : getFallbackResult(id);
 }
 
 export async function executeRun(
   personaIds: PersonaId[],
   startUrl = "/demo-site",
 ): Promise<{ mode: RunMode; results: PersonaResult[] }> {
-  const mode = resolveMode();
+  const live = isLiveUrl(startUrl);
+  // A real external URL can ONLY be tested with a real browser — force it,
+  // regardless of env. The controlled demo follows the configured mode.
+  const mode: RunMode = live ? "browser" : resolveMode();
 
-  // Fast path: pure deterministic fallback.
+  // Fast path: pure deterministic fallback (demo only).
   if (mode === "fallback") {
     return { mode, results: runFallback(personaIds) };
   }
 
-  // Browser runs sequentially (4 Chromium instances at once is heavy for a
-  // demo laptop); AI-simulated runs go in parallel.
   let results: PersonaResult[];
   if (mode === "browser") {
-    results = [];
-    for (const id of personaIds) {
-      results.push(await runOnePersona(mode, id, startUrl));
+    // Live runs go in parallel for speed. The demo runs sequentially (4 Chromium
+    // at once is heavy and the controlled demo doesn't need the speed).
+    if (live) {
+      results = await Promise.all(
+        personaIds.map((id) => runOnePersona(mode, id, startUrl, true)),
+      );
+    } else {
+      results = [];
+      for (const id of personaIds) {
+        results.push(await runOnePersona(mode, id, startUrl, false));
+      }
     }
   } else {
     results = await Promise.all(personaIds.map((id) => runOnePersona(mode, id, startUrl)));

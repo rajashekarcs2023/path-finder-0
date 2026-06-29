@@ -99,21 +99,55 @@ async function decideAction(
 function summarize(obs: PageObservation): string {
   const heading = obs.headings[0] ? `“${obs.headings[0]}”` : obs.title;
   const nav = obs.links
-    .filter((l) => l.href.startsWith("/"))
     .map((l) => l.text)
+    .filter(Boolean)
     .slice(0, 5)
     .join(", ");
   return `${heading}${nav ? ` · nav: ${nav}` : ""}`;
+}
+
+/**
+ * Honest verdict for a REAL external URL when no AI judge is available (or the
+ * run failed). Unlike the curated AgentGrid fallback, this references the real
+ * journey and never invents site-specific findings.
+ */
+export function genericResult(
+  persona: Persona,
+  journey: JourneyStep[],
+  note?: string,
+): PersonaResult {
+  const ran = journey.length > 0;
+  return {
+    personaId: persona.id,
+    personaName: persona.name,
+    mission: persona.mission,
+    outcome: "partial",
+    score: ran ? 55 : 25,
+    journey,
+    confusionPoint: ran
+      ? "Captured the live journey — enable an OpenAI key for a full persona verdict on this site."
+      : note ?? "The agent could not load or navigate the site.",
+    quote: "",
+    conversionBlocker: ran
+      ? "No AI judge was available to score this live run."
+      : "The site could not be reached or navigated within the time limit.",
+    recommendedFix:
+      "Set OPENAI_API_KEY to get persona-specific findings and fixes for this URL.",
+  };
 }
 
 export async function runPersonaJourney({
   persona,
   startUrl,
   maxSteps = 5,
+  generic = false,
 }: {
   persona: Persona;
   startUrl: string;
   maxSteps?: number;
+  /** True for real external URLs: failures/fallbacks use a generic verdict
+   * instead of the AgentGrid-specific curated result. */
+  generic?: boolean;
 }): Promise<PersonaResult> {
   let browser: import("playwright").Browser | null = null;
   try {
@@ -122,7 +156,10 @@ export async function runPersonaJourney({
       headless: process.env.HEADLESS !== "false",
     });
     const page = await browser.newPage();
-    await page.goto(absolute(startUrl), { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.goto(absolute(startUrl), {
+      waitUntil: "domcontentloaded",
+      timeout: generic ? 30000 : 15000,
+    });
 
     const journey: JourneyStep[] = [];
 
@@ -202,12 +239,16 @@ export async function runPersonaJourney({
         console.error("generatePersonaReport failed, using curated verdict:", err);
       }
     }
-    // Curated verdict + the REAL observed journey when we captured one.
+    // No AI judge available. For real URLs return an honest generic verdict;
+    // for the demo site, the curated verdict + the REAL observed journey.
+    if (generic) return genericResult(persona, journey);
     const curated = getFallbackResult(persona.id);
     return { ...curated, journey: journey.length ? journey : curated.journey };
   } catch (err) {
     console.error(`runPersonaJourney failed for ${persona.id}, using fallback:`, err);
-    return getFallbackResult(persona.id);
+    return generic
+      ? genericResult(persona, [], `Couldn’t load ${startUrl}.`)
+      : getFallbackResult(persona.id);
   } finally {
     if (browser) await browser.close().catch(() => {});
   }

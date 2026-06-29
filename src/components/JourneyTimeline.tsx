@@ -1,9 +1,20 @@
 import type { JourneyStep } from "@/lib/types";
 
-/** A terminal/failure step gets a rose dot instead of the brand indigo dot. */
-function isEndStep(action: string): boolean {
-  return action.startsWith("Stopped") || action.includes("Could not");
+type DotKind = "step" | "success" | "end";
+
+/** Terminal steps get a colored dot: green for a successful finish, rose for a
+ * failure/dead-end, brand indigo for an in-progress step. */
+function dotKind(action: string): DotKind {
+  if (/success/i.test(action)) return "success";
+  if (action.startsWith("Stopped") || action.includes("Could not")) return "end";
+  return "step";
 }
+
+const DOT_CLASS: Record<DotKind, string> = {
+  step: "bg-brand-500/20 text-brand-400 ring-brand-500/40",
+  success: "bg-emerald-500/20 text-emerald-200 ring-emerald-500/40",
+  end: "bg-rose-500/20 text-rose-200 ring-rose-500/40",
+};
 
 /**
  * Vertical agent-journey timeline. Each step is a numbered dot on a connecting
@@ -30,7 +41,7 @@ export default function JourneyTimeline({
   return (
     <ol className="relative">
       {shown.map((step, i) => {
-        const end = isEndStep(step.action);
+        const kind = dotKind(step.action);
         const isLast = i === shown.length - 1;
 
         return (
@@ -49,9 +60,7 @@ export default function JourneyTimeline({
               <span
                 className={[
                   "z-10 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ring-1 ring-inset",
-                  end
-                    ? "bg-rose-500/20 text-rose-200 ring-rose-500/40"
-                    : "bg-brand-500/20 text-brand-400 ring-brand-500/40",
+                  DOT_CLASS[kind],
                 ].join(" ")}
               >
                 {step.stepNumber}

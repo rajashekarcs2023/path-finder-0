@@ -27,11 +27,14 @@ export default function PersonaRunCard({
   result,
   revealedSteps,
   done,
+  loading = false,
 }: {
   persona: Persona;
   result: PersonaResult;
   revealedSteps: number;
   done: boolean;
+  /** True while the run is still executing server-side (no journey yet). */
+  loading?: boolean;
 }) {
   const theme = PERSONA_THEME[persona.id];
   const tone = OUTCOME_TONE[result.outcome];
@@ -66,7 +69,7 @@ export default function PersonaRunCard({
               aria-hidden
               className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-400"
             />
-            Running
+            {loading ? "Thinking" : "Running"}
           </span>
         )}
       </div>
@@ -78,9 +81,32 @@ export default function PersonaRunCard({
         {persona.mission}
       </p>
 
-      {/* journey */}
+      {/* journey (or a live "thinking" state while the agent works server-side) */}
       <div className="mt-4">
-        <JourneyTimeline steps={result.journey} revealed={revealedSteps} />
+        {loading ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <span aria-hidden className="flex items-end gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400 [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400 [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400 [animation-delay:300ms]" />
+              </span>
+              <span>Navigating AgentGrid and deciding where to click…</span>
+            </div>
+            <div className="space-y-2">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className="relative h-12 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]"
+                >
+                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <JourneyTimeline steps={result.journey} revealed={revealedSteps} />
+        )}
       </div>
 
       {/* final score footer */}

@@ -11,6 +11,29 @@ const INPUT_CLASS =
   "w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-400/50";
 const LABEL_CLASS = "block text-sm font-medium text-slate-300 mb-1.5";
 
+function normalizeUrl(u: string): string {
+  const t = u.trim();
+  if (!t) return t;
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
+function hostOf(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function targetClass(active: boolean): string {
+  return [
+    "flex flex-col items-start gap-0.5 rounded-xl border px-4 py-3 text-left transition",
+    active
+      ? "border-brand-400/40 bg-brand-500/10 ring-1 ring-brand-400/30"
+      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+  ].join(" ");
+}
+
 /**
  * Prefilled LaunchQA configuration form. On submit it persists the config to
  * sessionStorage and routes to /run. Designed to demo in a single click.
@@ -19,7 +42,8 @@ export default function SetupForm() {
   const router = useRouter();
 
   const [companyName, setCompanyName] = useState("AgentGrid");
-  const [websiteUrl, setWebsiteUrl] = useState("/demo-site");
+  const [target, setTarget] = useState<"demo" | "live">("demo");
+  const [liveUrl, setLiveUrl] = useState("");
   const [productDescription, setProductDescription] = useState(
     "AI infrastructure for building, deploying, and discovering AI agents",
   );
@@ -50,8 +74,15 @@ export default function SetupForm() {
     if (submitting) return;
     setSubmitting(true);
 
+    const isLive = target === "live";
+    const websiteUrl = isLive ? normalizeUrl(liveUrl) : "/demo-site";
+    const resolvedCompany =
+      isLive && companyName.trim() === "AgentGrid"
+        ? hostOf(websiteUrl) || companyName
+        : companyName;
+
     const config: SetupConfig = {
-      companyName,
+      companyName: resolvedCompany,
       websiteUrl,
       productDescription,
       launchGoal,
@@ -80,22 +111,53 @@ export default function SetupForm() {
         </div>
 
         <div>
-          <label htmlFor="websiteUrl" className={LABEL_CLASS}>
-            Website URL
-          </label>
-          <input
-            id="websiteUrl"
-            type="text"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            placeholder="/demo-site"
-            className={INPUT_CLASS}
-          />
-          <p className="mt-1.5 text-xs text-slate-500">
-            Use{" "}
-            <span className="font-mono text-slate-400">/demo-site</span> — the
-            controlled demo site {BRAND.name} crawls for this walkthrough.
-          </p>
+          <span className={LABEL_CLASS}>What should the personas test?</span>
+          <div className="mt-1 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setTarget("demo")}
+              aria-pressed={target === "demo"}
+              className={targetClass(target === "demo")}
+            >
+              <span className="text-sm font-semibold text-white">🧪 Demo site</span>
+              <span className="text-xs text-slate-400">
+                AgentGrid · instant &amp; reliable
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTarget("live")}
+              aria-pressed={target === "live"}
+              className={targetClass(target === "live")}
+            >
+              <span className="text-sm font-semibold text-white">🌐 Live website</span>
+              <span className="text-xs text-slate-400">real browser + AI</span>
+            </button>
+          </div>
+
+          {target === "live" ? (
+            <div className="mt-3">
+              <input
+                id="liveUrl"
+                type="text"
+                value={liveUrl}
+                onChange={(e) => setLiveUrl(e.target.value)}
+                placeholder="https://yourstartup.com"
+                autoComplete="off"
+                className={INPUT_CLASS}
+              />
+              <p className="mt-1.5 text-xs text-amber-300/90">
+                ⚡ Live mode launches a real Chromium browser and uses AI to
+                navigate the site — needs an OpenAI key and takes ~30–60s.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-slate-500">
+              Runs against{" "}
+              <span className="font-mono text-slate-400">/demo-site</span> — the
+              controlled, intentionally-flawed AgentGrid site (zero setup).
+            </p>
+          )}
         </div>
 
         <div>
@@ -178,7 +240,7 @@ export default function SetupForm() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (target === "live" && !liveUrl.trim())}
             className="lq-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Launching…" : `Run ${BRAND.name}`}

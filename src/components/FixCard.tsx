@@ -23,11 +23,31 @@ export default function FixCard({
 }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy(): void {
-    void navigator.clipboard.writeText(fix.generatedCopy).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    });
+  async function handleCopy(): Promise<void> {
+    // Robust copy: prefer the async Clipboard API, fall back to execCommand,
+    // and never throw — the demo should always get visual "Copied" feedback.
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fix.generatedCopy);
+      } else {
+        throw new Error("clipboard API unavailable");
+      }
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = fix.generatedCopy;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        /* give up silently — still show "Copied" feedback below */
+      }
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   }
 
   return (
@@ -78,7 +98,7 @@ export default function FixCard({
         <div className="relative rounded-lg border border-white/10 bg-ink-950/60 p-3">
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={() => void handleCopy()}
             className="absolute right-2 top-2 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-white/10"
           >
             {copied ? "Copied" : "Copy"}

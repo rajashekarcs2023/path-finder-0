@@ -10,6 +10,7 @@ import {
 import JourneyTimeline from "@/components/JourneyTimeline";
 import FixCard from "@/components/FixCard";
 import BeforeAfterPreview from "@/components/BeforeAfterPreview";
+import ReRunMoment from "@/components/ReRunMoment";
 
 type Tone = "success" | "partial" | "failure";
 
@@ -45,6 +46,11 @@ export default function ResultsDashboard({
   const results = run.results;
   const score = overallReadiness(results);
   const tone = scoreTone(score);
+  // The before/after + re-run sections are specific to the controlled AgentGrid
+  // demo; a real external site has no "improved" version to compare against.
+  const isLive =
+    /^https?:\/\//i.test(run.websiteUrl) &&
+    !/localhost|127\.0\.0\.1/i.test(run.websiteUrl);
 
   const counts = {
     success: results.filter((r) => r.outcome === "success").length,
@@ -247,11 +253,20 @@ export default function ResultsDashboard({
         </div>
       </section>
 
-      {/* (e) Before / after */}
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-white">See the fixes live</h2>
-        <BeforeAfterPreview />
-      </section>
+      {/* (e) Before / after + (f) the re-run payoff — controlled-demo only */}
+      {!isLive && (
+        <>
+          <section>
+            <h2 className="mb-4 text-lg font-semibold text-white">
+              See the fixes live
+            </h2>
+            <BeforeAfterPreview />
+          </section>
+
+          {/* Developer goes from blocked to activated on the improved site */}
+          <ReRunMoment before={results.find((r) => r.personaId === "developer")} />
+        </>
+      )}
     </div>
   );
 }

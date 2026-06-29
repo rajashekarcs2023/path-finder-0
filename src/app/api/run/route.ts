@@ -7,7 +7,8 @@ import { executeRun } from "@/lib/runEngine";
 // Playwright + OpenAI need the Node.js runtime (not edge), and a real run can
 // take a little while when the browser agent is enabled.
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Live (real-browser) runs of several personas can take a while.
+export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {

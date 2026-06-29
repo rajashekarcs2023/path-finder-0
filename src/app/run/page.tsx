@@ -144,12 +144,24 @@ export default function RunPage() {
       personas: ids,
     };
 
+    // A real AI-mode run takes ~10-15s; never let a hung/slow call leave the
+    // demo stuck on the loading screen — abort after 35s and seed-fallback.
+    const isLive =
+      /^https?:\/\//i.test(body.websiteUrl) &&
+      !/localhost|127\.0\.0\.1/i.test(body.websiteUrl);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      isLive ? 90000 : 35000,
+    );
+
     (async () => {
       try {
         const res = await fetch("/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error(`run failed: ${res.status}`);
         const data = (await res.json()) as RunResponse;
@@ -191,6 +203,8 @@ export default function RunPage() {
         setResults(map);
         setMode("fallback");
         saveRun({ ...fallback, personas: ids, results: Object.values(map) });
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     })();
     // No cleanup-cancel here: `startedRef` guarantees this block runs exactly
@@ -285,6 +299,7 @@ export default function RunPage() {
   const completeCount = personaIds.filter((id) => done[id]).length;
   const allDone = personaIds.length > 0 && completeCount === personaIds.length;
   const websiteUrl = config?.websiteUrl ?? "/demo-site";
+  const targetName = config?.companyName?.trim() || "AgentGrid";
 
   return (
     <div className="min-h-screen">
@@ -303,7 +318,7 @@ export default function RunPage() {
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
               <span className="lq-gradient-text">
-                AI personas are testing AgentGrid
+                AI personas are testing {targetName}
               </span>
             </h1>
             <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400">
@@ -312,8 +327,17 @@ export default function RunPage() {
               <code className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-xs text-slate-300 ring-1 ring-inset ring-white/10">
                 {websiteUrl}
               </code>
-              {mode && (
+              {results && mode ? (
                 <span className="lq-badge lq-badge-running">{MODE_PILL[mode]}</span>
+              ) : (
+                <span className="lq-badge lq-badge-running">
+                  <span aria-hidden className="flex items-end gap-0.5">
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-brand-400 [animation-delay:0ms]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-brand-400 [animation-delay:150ms]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-brand-400 [animation-delay:300ms]" />
+                  </span>
+                  Agents working
+                </span>
               )}
             </p>
           </div>
@@ -367,6 +391,7 @@ export default function RunPage() {
                 result={resultFor(id)}
                 revealedSteps={revealed[id] ?? 0}
                 done={done[id] ?? false}
+                loading={!results}
               />
             </div>
           ))}
